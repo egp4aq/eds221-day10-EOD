@@ -1,0 +1,93 @@
+---
+title: "Day 10 EOD"
+author: "Liz Peterson"
+format: html
+warning: FALSE
+message: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(dplyr)
+library(lubridate)
+```
+
+```{r}
+ice_cover_duration_df <- read_csv(here("data", "ntl33_v7.csv"), na = "-999")
+meteorological_df <- read_csv(here("data", "ntl20_v6.csv"), na = "-999")
+```
+
+```{r}
+ggplot(data = ice_cover_duration_df, aes(x = lakeid, y = ice_duration)) +
+  geom_jitter() +
+  geom_boxplot(aes(color = lakeid, alpha = 0.1), outlier.shape = NA) +
+  labs(x = "Lake",
+       y = "Ice duration (days)",
+       title = "Ice duration in various WI lakes") +
+  theme_minimal() +
+  scale_color_manual(name = "Lakes:",
+                      values = c("pink", "purple", "blue"),
+                     labels = c("Lake Mendota", "Lake Monona", "Lake Wingra"))
+# using outlier.shape = NA got rid of the outliers in the boxplot that were doubly represented because of the jitter plot it overlays.
+```
+
+```{r}
+mean_by_year <- ice_cover_duration_df %>%
+  group_by(year4) %>%
+  summarize(mean_ice = mean(ice_duration, na.rm = TRUE))
+
+ggplot(data = mean_by_year, aes(x = year4, y = mean_ice)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Mean ice duration per year in WI lakes",
+       x = "Year",
+       y = "Mean ice duration") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+The overall trend for these three lakes from 1850 to 2019 shows that the number of days that ice is covering the lakes is declining. We can see this trend from the beautiful linear regression line. There are not multiple values for each year. 
+
+```{r}
+winter_temp_set <- meteorological_df %>%
+  filter(month %in% c(12, 1, 2))
+winter_temp_set <- winter_temp_set %>%
+  group_by(year4) %>%
+  summarize(mean_temp = mean(ave_air_temp_adjusted, na.rm=TRUE))
+```
+
+```{r}
+ggplot(data = winter_temp_set, aes(x = year4, y = mean_temp)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Year",
+       y = "Average temperature",
+       title = "Average temperature in Madison Lake area (in winter)")
+```
+The overall trend in average air temperature is increasing in the winter months. 
+
+```{r}
+new_df <- left_join(x = mean_by_year, y = winter_temp_set)
+
+ggplot(data = new_df, aes(x = mean_temp, y = mean_ice)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Mean temp (fahrenheit)",
+       y = "Mean ice duration (days)",
+       title = "mean air temp vs mean ice duration")
+```
+As Mean temperature increases, the mean ice duration decreases. 
+
+```{r}
+ice_subset_1970 <- ice_cover_duration_df %>%
+  mutate(year_off = year(ymd(ice_off))) %>%
+  mutate(day_off = yday(ymd(ice_off))) %>%
+  filter(year_off >= 1970)
+```
+
+```{r}
+ggplot(data = ice_subset_1970, aes(x = year_off, y = day_off)) +
+  geom_col()
+```
+There isn't a huge correlation that's obvious, but it does seem like there were more ice days from 1970 to 1980.
