@@ -88,6 +88,9 @@ ice_subset_1970 <- ice_cover_duration_df %>%
 
 ```{r}
 ggplot(data = ice_subset_1970, aes(x = year_off, y = day_off)) +
-  geom_col()
+  geom_col() +
+  labs(title = "Day the ice melted each year",
+       x = "Year",
+       y = "Day")
 ```
 There isn't a huge correlation that's obvious, but it does seem like there were more ice days from 1970 to 1980.
